@@ -1,0 +1,26 @@
+glue is a small Emacs package to allow interop between Emacs and SBCL. Sometimes there is a need for a longer-running process without freezing the Emacs interface.
+The idea is to outsource these to a multithreaded backend, in this case Common Lisp.
+
+The following example runs a Common Lisp expression and returns the result.
+#+begin_src elisp
+  (glue-send-sync "(+ 1 2)")
+#+end_src
+
+#+RESULTS:
+: 3
+
+An asynchronous call is also possible. Consider the following example, where after 3 seconds a message is displayed in Emacs. The function returns immediately, and a continuation can be provided to handle the result.
+#+begin_src elisp
+  (glue-send-async "(progn (sleep 3) (+ 1 2))" #'(lambda (result) (message (format "%s" result))))
+#+end_src
+
+#+RESULTS:
+: :slime-eval-async
+
+In those cases when the Emacs side needs to be updated during the processing, a thread-calling function can be used:
+#+begin_src elisp
+  (glue-sbcl-thread "my-thread" "(loop for i from 1 to 3 do (sleep 1) (swank:eval-in-emacs `(setf my-counter ,i)))")
+#+end_src
+
+#+RESULTS:
+: #<THREAD "my-thread" RUNNING {1002DF94C3}>
