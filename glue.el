@@ -1,4 +1,4 @@
-;;; glue.el --- Emacs - Common Lisp interop                     -*- lexical-binding: t; -*-
+;;; glue.el --- Emacs - Common Lisp interop using SLIME or SLY        -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2014  Gabor Poczkodi
 
@@ -8,10 +8,10 @@
 ;; Version: 0.0.1
 ;; Package-Requires: ((emacs "24.1"))
 
-;; This program is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation, either version 3 of the License, or
-;; (at your option) any later version.
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the GNU General Public License as
+;; published by the Free Software Foundation, either version 3 of the
+;; License, or (at your option) any later version.
 
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,19 +19,20 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;; along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
 
-;; This package aims to allow Common Lisp code to be run from within Emacs Lisp.
-;; SLIME/SLY must be connected before invoking the functions.  Configuration of SLIME/SLY and CL
-;; is up to the user.
-;; The thread-creating functions can be used to augment Emacs with threads that run in
-;; Common Lisp.  Since it is possible to update the Emacs side from within the threads,
-;; one can use it to offload long-running processes to CL and retain a responsive Emacs.
+;; This package aims to allow Common Lisp code to be run from within
+;; Emacs Lisp.  SLIME/SLY must be connected before invoking the
+;; functions.  Configuration of SLIME/SLY and CL is up to the user.
+;; The thread-creating functions can be used to augment Emacs with
+;; threads that run in Common Lisp.  Since it is possible to update
+;; the Emacs side from within the threads, one can use it to offload
+;; long-running processes to CL and retain a responsive Emacs.
 
-;; (eval-in-emacs) function is injected to CL side to allow calls to Emacs side to be
-;; independent of interaction-mode (SLIME or SLY)
+;; (eval-in-emacs) function is injected to CL side to allow calls to
+;; Emacs side to be independent of interaction-mode (SLIME or SLY)
 
 ;;; Code:
 
@@ -53,34 +54,42 @@
 
 (defun glue--precheck ()
   "Checking whether the selected interaction package is installed/connected."
-  (cond ((eq 'slime glue-interaction) (if (locate-library "slime")
-                                                  (if (slime-connected-p)
-                                                      'slime
-                                                    (progn (message "Not connected.")
-                                                           nil))
-                                                (progn
-                                                  (message "SLIME is not installed.")
-                                                  nil)))
-        ((eq 'sly glue-interaction) (if (locate-library "sly")
-                                                (if (sly-connected-p)
-                                                    'sly
-                                                  (progn (message "Not connected.")
-                                                         nil))
-                                              (progn
-                                                (message "SLY is not connected.")
-                                                nil)))))
+  (cond ((eq 'slime glue-interaction)
+         (if (locate-library "slime")
+             (if (slime-connected-p)
+                 'slime
+               (message "Not connected.")
+               nil)
+           (message "SLIME is not installed.")
+           nil))
+        ((eq 'sly glue-interaction)
+         (if (locate-library "sly")
+             (if (sly-connected-p)
+                 'sly
+               (message "Not connected.")
+               nil)
+           (message "SLY is not connected.")
+           nil))))
 
 (defun glue--slime-send-sync (cl-form)
   "Internal function for SLIME sync request.
 Pass valid CL form as CL-FORM."
   (slime-eval
-   `(cl:eval (cl:read-from-string ,(prin1-to-string `(flet ((eval-in-emacs (form) (swank:eval-in-emacs form))) ,cl-form))))))
+   `(cl:eval
+     (cl:read-from-string
+      ,(prin1-to-string
+        `(flet ((eval-in-emacs (form) (swank:eval-in-emacs form)))
+           ,cl-form))))))
 
 (defun glue--sly-send-sync (cl-form)
   "Internal function for SLY sync request.
 Pass valid CL form as CL-FORM."
   (sly-eval
-   `(cl:eval (cl:read-from-string ,(prin1-to-string `(flet ((eval-in-emacs (form) (slynk:eval-in-emacs form))) ,cl-form))))))
+   `(cl:eval
+     (cl:read-from-string
+      ,(prin1-to-string
+        `(flet ((eval-in-emacs (form) (slynk:eval-in-emacs form)))
+           ,cl-form))))))
 
 (defun glue-send-sync (cl-form)
   "Run CL form synchronously and return result.
@@ -94,7 +103,11 @@ Pass valid CL form as CL-FORM."
 Pass valid CL form as CL-FORM.
 Pass a continuation function as CONTINUATION."
   (slime-eval-async
-      `(cl:eval (cl:read-from-string ,(prin1-to-string `(flet ((eval-in-emacs (form) (swank:eval-in-emacs form))) ,cl-form))))
+      `(cl:eval
+        (cl:read-from-string
+         ,(prin1-to-string
+           `(flet ((eval-in-emacs (form) (swank:eval-in-emacs form)))
+              ,cl-form))))
     `,continuation))
 
 (defun glue--sly-send-async (cl-form continuation)
@@ -102,7 +115,11 @@ Pass a continuation function as CONTINUATION."
 Pass valid CL form as CL-FORM.
 Pass a continuation function as CONTINUATION."
   (sly-eval-async
-      `(cl:eval (cl:read-from-string ,(prin1-to-string `(flet ((eval-in-emacs (form) (slynk:eval-in-emacs form))) ,cl-form))))
+   `(cl:eval
+     (cl:read-from-string
+      ,(prin1-to-string
+        `(flet ((eval-in-emacs (form) (slynk:eval-in-emacs form)))
+           ,cl-form))))
     `,continuation))
 
 (defun glue-send-async (cl-form continuation)
@@ -113,12 +130,15 @@ Pass result of form as argument to CONTINUATION."
     (cond ((eq 'slime interaction) (glue--slime-send-async cl-form continuation))
           ((eq 'sly interaction) (glue--sly-send-async cl-form continuation)))))
 
-;; Two thread functions are provided. (glue-sbcl-thread) can be used with SBCL only.
-;; It has the advantage of not needing to load any external libraries.
-;; This starts a thread on SBCL side and returns the string representation
-;; of the thread object. (swank:eval-in-emacs) can be used from the thread to update Emacs side.
-;; example call for slime-send-thread:
-;; (glue-sbcl-thread "(progn (sleep 3) (swank:eval-in-emacs '(incf temp 10)))")
+;; Two thread functions are provided. (glue-sbcl-thread) can be used
+;; with SBCL only.  It has the advantage of not needing to load any
+;; external libraries.  This starts a thread on SBCL side and returns
+;; the string representation of the thread
+;; object. (swank:eval-in-emacs) can be used from the thread to update
+;; Emacs side.
+;; Example call for slime-send-thread:
+;; (glue-sbcl-thread "thread-name"
+;;  '(progn (sleep 3) (swank:eval-in-emacs '(incf temp 10))))
 
 (defun glue--slime-sbcl-thread (name-of-thread cl-form)
   "Internal function for SLIME SBCL thread request.
@@ -130,7 +150,11 @@ Pass a valid CL form as CL-FORM."
                 (sb-thread:make-thread #'(cl:lambda (conn)
                                                     (cl:let ((conn conn))
                                                             (swank::with-connection (conn)
-                                                                                    (cl:eval (cl:read-from-string ,(prin1-to-string `(flet ((eval-in-emacs (form) (swank:eval-in-emacs form))) ,cl-form)))))))
+                                                                                    (cl:eval
+                                                                                     (cl:read-from-string
+                                                                                      ,(prin1-to-string
+                                                                                        `(flet ((eval-in-emacs (form) (swank:eval-in-emacs form)))
+                                                                                           ,cl-form)))))))
                                        :name ,name-of-thread
                                        :arguments swank::*emacs-connection*)))))
 
@@ -138,12 +162,13 @@ Pass a valid CL form as CL-FORM."
   "Internal function for SLY SBCL thread request.
 Pass the name of the thread as NAME-OF-THREAD.
 Pass a valid CL form as CL-FORM."
-  (let ((string-representation (prin1-to-string `(flet ((eval-in-emacs (form) (slynk:eval-in-emacs form)))
-                                                   (sb-thread:make-thread #'(cl:lambda (conn)
-                                                                                       (slynk::with-connection (conn)
-                                                                                                               (cl:eval ,cl-form)))
-                                                                          :name ,name-of-thread
-                                                                          :arguments slynk::*emacs-connection*)))))
+  (let ((string-representation (prin1-to-string
+                                `(flet ((eval-in-emacs (form) (slynk:eval-in-emacs form)))
+                                   (sb-thread:make-thread #'(cl:lambda (conn)
+                                                                       (slynk::with-connection (conn)
+                                                                                               (cl:eval ,cl-form)))
+                                                          :name ,name-of-thread
+                                                          :arguments slynk::*emacs-connection*)))))
     (sly-eval `(cl:format nil "~a" (cl:eval
                                     (cl:read-from-string
                                      ,string-representation))))))
@@ -156,7 +181,8 @@ Pass valid CL form as CL-FORM."
     (cond ((eq 'slime interaction) (glue--slime-sbcl-thread name-of-thread cl-form))
           ((eq 'sly interaction) (glue--sly-sbcl-thread name-of-thread cl-form)))))
 
-;; (glue-bt-thread) uses bordeaux-threads library, but this must be loaded into CL before usage.
+;; (glue-bt-thread) uses bordeaux-threads library, but this must be
+;; loaded into CL before usage.
 (defun glue--slime-bt-thread (name-of-thread cl-form)
   "Internal function for SLIME bordeaux-thread request.
 Pass name of thread as NAME-OF-THREAD.
@@ -167,7 +193,11 @@ Pass valid CL form as CL-FORM."
                 (cl:let ((conn swank::*emacs-connection*))
                         (bt:make-thread #'(cl:lambda ()
                                                      (swank::with-connection (conn)
-                                                                             (cl:eval (cl:read-from-string ,(prin1-to-string `(flet ((eval-in-emacs (form) (swank:eval-in-emacs form))) ,cl-form))))))
+                                                                             (cl:eval
+                                                                              (cl:read-from-string
+                                                                               ,(prin1-to-string
+                                                                                 `(flet ((eval-in-emacs (form) (swank:eval-in-emacs form)))
+                                                                                    ,cl-form))))))
                                         :name ,name-of-thread))))))
 
 (defun glue--sly-bt-thread (name-of-thread cl-form)
