@@ -1,26 +1,66 @@
-glue is a small Emacs package to allow interop between Emacs and SBCL. Sometimes there is a need for a longer-running process without freezing the Emacs interface.
-The idea is to outsource these to a multithreaded backend, in this case Common Lisp.
+glue is a small Emacs package to allow interop between Emacs and SBCL.
+Sometimes there is a need for a longer-running process without
+freezing the Emacs interface. The idea is to outsource these to a
+multithreaded backend, in this case Common Lisp.
 
-The following example runs a Common Lisp expression and returns the result.
+It uses an existing SLIME or SLY connection to the CL instance as a
+prerequisite.
+
+The following example runs a Common Lisp expression and returns the
+result.
+
 #+begin_src elisp
-  (glue-send-sync "(+ 1 2)")
+  (glue-send-sync '(+ 1 2))
 #+end_src
 
 #+RESULTS:
 : 3
 
-An asynchronous call is also possible. Consider the following example, where after 3 seconds a message is displayed in Emacs. The function returns immediately, and a continuation can be provided to handle the result.
+An asynchronous call is also possible. Consider the following example,
+where after 3 seconds a message is displayed in Emacs. The function
+returns immediately, and a continuation can be provided to handle the
+result.
+
 #+begin_src elisp
-  (glue-send-async "(progn (sleep 3) (+ 1 2))" #'(lambda (result) (message (format "%s" result))))
+   (glue-send-async '(progn (sleep 3) "Hello world!")
+                    #'(lambda (result) (message (format "%s" result))))
 #+end_src
 
 #+RESULTS:
 : :slime-eval-async
 
-In those cases when the Emacs side needs to be updated during the processing, a thread-calling function can be used:
+In those cases when the Emacs side needs to be updated during
+the processing, a thread-calling function can be used:
+
 #+begin_src elisp
-  (glue-sbcl-thread "my-thread" "(loop for i from 1 to 3 do (sleep 1) (swank:eval-in-emacs `(setf my-counter ,i)))")
+  (setf my-counter 0)
+  (glue-sbcl-thread "my-thread"
+                    '(loop for i from 1 to 3 do
+                           (sleep 1)
+                           (eval-in-emacs
+                            `(setf my-counter ,i))))
 #+end_src
 
 #+RESULTS:
-: #<THREAD "my-thread" RUNNING {1002DF94C3}>
+: #<THREAD "my-thread" RUNNING {100181F313}>
+
+In the example above, check the value of my-counter after 3 seconds.
+
+For updating the values of variables in real-time, I recommend using
+the 'lively' package. It uses timers for updates and can be used for
+building simple dashboards.
+
+#+begin_src elisp :results none
+  (use-package lively :ensure t)
+  (load "~/glue/glue.el")
+
+  (defun lively-sexp (sexp)
+    (let ((str (prin1-to-string sexp)))
+      (insert str)
+      (lively-region (- (point) (length str)) (point))))
+#+end_src
+
+We'll use the (lively-sexp) to show an auto-updating value.
+
+Eval (show-text) anywhere to display "hello world" at the cursor
+location.
