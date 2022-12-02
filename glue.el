@@ -234,5 +234,33 @@ Pass valid CL form as CL-FORM."
     (cond ((eq 'slime interaction) (glue--slime-bt-thread name-of-thread cl-form))
           ((eq 'sly interaction) (glue--sly-bt-thread name-of-thread cl-form)))))
 
+(defun glue--slime-bridge (emacs-variable cl-variable)
+  "Internal function for SLIME bridge.
+Pass Emacs variable symbol as EMACS-VARIABLE.
+Pass CL variable symbol as CL-VARIABLE."
+    (let ((thread-name (format "%s" (gensym (format "%s-%s-bridge-" emacs-variable cl-variable))))
+          (sexp (format "(swank:eval-in-emacs `(setf %s ,%s))" emacs-variable cl-variable)))
+      (glue-bt-thread thread-name
+                      `(loop while t do (cl:eval (cl:read-from-string ,sexp))))))
+
+(defun glue--sly-bridge (emacs-variable cl-variable)
+  "Internal function for SLY bridge.
+Pass Emacs variable symbol as EMACS-VARIABLE.
+Pass CL variable symbol as CL-VARIABLE."
+  (let ((thread-name (format "%s" (gensym (format "%s-%s-bridge-" emacs-variable cl-variable))))
+          (sexp (format "(slynk:eval-in-emacs `(setf %s ,%s))" emacs-variable cl-variable)))
+      (glue-bt-thread thread-name
+                      `(loop while t do (cl:eval (cl:read-from-string ,sexp))))))
+
+(defun glue-bridge (emacs-variable cl-variable)
+  "Start a thread which connects the emacs-variable with cl-variable.
+Ensures that the value of emacs-variable always equals to cl-variable.
+Pass symbol of Emacs variable as EMACS-VARIABLE.
+Pass symbol of CL variable as CL-VARIABLE."
+  (let ((interaction (glue--precheck)))
+    (glue-ensure-package 'bordeaux-threads)
+    (cond ((eq 'slime interaction) (glue--slime-bridge emacs-variable cl-variable))
+          ((eq 'sly interaction) (glue--sly-bridge emacs-variable cl-variable)))))
+
 (provide 'glue)
 ;;; glue.el ends here
