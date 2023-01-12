@@ -78,7 +78,7 @@ Pass valid CL form as CL-FORM."
    `(cl:eval
      (cl:read-from-string
       ,(prin1-to-string
-        `(flet ((eval-in-emacs (form) (swank:eval-in-emacs form)))
+        `(cl:flet ((eval-in-emacs (form) (swank:eval-in-emacs form)))
            ,cl-form))))))
 
 (defun glue--sly-send-sync (cl-form)
@@ -88,7 +88,7 @@ Pass valid CL form as CL-FORM."
    `(cl:eval
      (cl:read-from-string
       ,(prin1-to-string
-        `(flet ((eval-in-emacs (form) (slynk:eval-in-emacs form)))
+        `(cl:flet ((eval-in-emacs (form) (slynk:eval-in-emacs form)))
            ,cl-form))))))
 
 (defun glue-send-sync (cl-form)
