@@ -44,7 +44,12 @@ the processing, a thread-calling function can be used:
 #+RESULTS:
 : #<THREAD "my-thread" RUNNING {100181F313}>
 
-In the example above, check the value of my-counter after 3 seconds.
+In the example above, check the value of my-counter after 3
+seconds. As the name suggests, this is for SBCL. If you use some other
+implementation, there is the glue-bt-thread function, which uses the
+bordeaux-thread library. This is loaded via Quicklisp, which should be
+preconfigured. If you don't want to use Quicklisp, you can load
+bordeaux-thread into your image by some other means.
 
 For updating the values of variables in real-time, I recommend using
 the 'lively' package. It uses timers for updates and can be used for
@@ -58,9 +63,15 @@ building simple dashboards.
     (let ((str (prin1-to-string sexp)))
       (insert str)
       (lively-region (- (point) (length str)) (point))))
+
+  (defun show-time ()
+    (lively-sexp '(current-time-string)))
 #+end_src
 
 We'll use the (lively-sexp) to show an auto-updating value.
 
-Eval (show-text) anywhere to display "hello world" at the cursor
-location.
+Eval (show-time) anywhere to display an auto-updating timestring at
+the cursor location.
+
+For more information, please refer to the lively package
+documentation.
